@@ -14,6 +14,8 @@ class Browser {
 
     public $timeOut;
     
+    private $_url;
+    
     private $_headers;
     
     private $_reqMethod;
@@ -31,6 +33,8 @@ class Browser {
     private $_content;
     
     private $_DOM;
+    
+    public $_success;
     
     public function __construct($options = null) {
     
@@ -59,11 +63,12 @@ class Browser {
             CURLOPT_HEADERFUNCTION => [$this, '_processHeader'],
             CURLOPT_ENCODING => 1
         ];
+
+        $this->_success = true;
         
     }
     
     private function _processHeader($curl, $headerline) {
-        echo "\n HEADER: $headerline\n";
         return strlen($headerline);
     }
     
@@ -123,7 +128,21 @@ class Browser {
     
     }
     
-    private function _request($url, $options = null) {
+    public function updateUrl($url) {
+    
+        if (!$this->_url) {
+            $this->_url = new Url($url);
+        } else {
+            $this->_url->update($url);
+        }
+        
+        return $this->_url->getUrl();
+        
+    }
+    
+    public function request($rurl, $options = null) {
+        
+        $url = $this->updateUrl($rurl);
         
         switch ($this->_reqMethod) {
             case (static::REQUEST_METHOD_CURL):
@@ -134,6 +153,10 @@ class Browser {
         
     }
     
+    public function success() {
+        return (bool) $this->_success;
+    }
+
     /* DOM INTERACTION */
     
     public function getDocument($asText = false) {
@@ -154,7 +177,7 @@ class Browser {
     /* NAVIGATION */
     
     public function getUrl () {
-        return $this->_currentUrl;
+        return $this->_url;
     }
     
     public function visit($url) {
@@ -165,8 +188,14 @@ class Browser {
             $this->_headers->removeHeader('Referer');
         }
         
-        $res = $this->_request($url);
+        $res = $this->request($url);
         
+        if ($res->status == 200) {
+            $this->_success = true;  
+        } else {
+            $this->_success = false;
+        }
+
         $this->_refresh($res);
         
         return $this;
@@ -175,10 +204,16 @@ class Browser {
     
     public function post($url,array $data) {
     
-        $res = $this->_request($url, [
+        $res = $this->request($url, [
             'post' => $data
         ]);
         
+        if ($res->status == 200) {
+            $this->_success = true;    
+        } else {
+            $this->_success = false;
+        }
+
         $this->_refresh($res);
     
     }
@@ -195,6 +230,31 @@ class Browser {
    
         print_r($form->childNodes->item(1));
     
+    }
+
+    public function goFrame($frame) {
+        
+        if (!is_int($frame)) {
+            $frames = $this->select($frame);
+        } else {
+            echo "da fuck";
+            $frames = $this->select("//frame[{$frame}]");
+        }
+
+        if (!$frames->length) {
+            throw new Exception("Frame don't selected");
+        }
+
+        if ($frames->length > 1) {
+            throw new Exception("The selector has return only one frame");
+        }
+
+        $oframe = $frames->item(0);
+
+        echo "este\n";
+        print_r($oframe);
+
+
     }
     
 }
