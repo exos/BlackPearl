@@ -11,8 +11,6 @@ function blackpearl_classes_autoload ($class) {
 
         $file = dirname(__FILE__) . "/" . strtolower(implode('/',$classPath)) .".php";
 
-        echo "busco $file";
-
         if (file_exists($file)) {
             require_once($file);
         }
